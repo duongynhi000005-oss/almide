@@ -701,3 +701,24 @@ fn a_modified_stdlib_copy_without_the_flag_is_refused() {
     let granted = check(&["--stdlib-authority", sub.to_str().expect("path")]);
     assert!(granted.status.success(), "the granted copy was refused:\n{}", String::from_utf8_lossy(&granted.stderr));
 }
+
+#[test]
+fn regex_whitespace_ascii_set() {
+    for c in ['\t', '\n', '\x0B', '\x0C', '\r', ' '] {
+        let s = c.to_string();
+        assert!(rt::pike_is_match(r"\s", &s), "char {:?} should match \\s", c);
+        assert!(!rt::pike_is_match(r"\S", &s), "char {:?} should not match \\S", c);
+        assert!(rt::pike_is_match(r"[\s]", &s), "char {:?} should match [\\s]", c);
+        assert!(!rt::pike_is_match(r"[^\s]", &s), "char {:?} should not match [^\\s]", c);
+        assert_eq!(
+            rt::answers(r"\s", &s, rt::Engine::Walk),
+            rt::answers(r"\s", &s, rt::Engine::Pike)
+        );
+        assert_eq!(
+            rt::answers(r"\S", &s, rt::Engine::Walk),
+            rt::answers(r"\S", &s, rt::Engine::Pike)
+        );
+    }
+    assert!(!rt::pike_full_match(r"^\S+$", "user\x0Cname"));
+    assert!(!rt::pike_full_match(r"^\S+$", "user\x0Bname"));
+}

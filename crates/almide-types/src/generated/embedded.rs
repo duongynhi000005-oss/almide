@@ -33272,9 +33272,9 @@ else if e == 68 then {
 } else if e == 119 then (c >= 97 and c <= 122) or (c >= 65 and c <= 90) or (c >= 48 and c <= 57) or c == 95
 else if e == 87 then {
   if (c >= 97 and c <= 122) or (c >= 65 and c <= 90) or (c >= 48 and c <= 57) or c == 95 then false else true
-} else if e == 115 then c == 32 or c == 9 or c == 10 or c == 13
+} else if e == 115 then c == 32 or (c >= 9 and c <= 13)
 else if e == 83 then {
-  if c == 32 or c == 9 or c == 10 or c == 13 then false else true
+  if c == 32 or (c >= 9 and c <= 13) then false else true
 } else if e == 110 then c == 10
 else if e == 116 then c == 9
 else if e == 114 then c == 13 else c == e
@@ -33287,7 +33287,7 @@ else {
     let e = prim.load8(p + 1)
     let hit = if e == 100 then c >= 48 and c <= 57
     else if e == 119 then (c >= 97 and c <= 122) or (c >= 65 and c <= 90) or (c >= 48 and c <= 57) or c == 95
-    else if e == 115 then c == 32 or c == 9 or c == 10 or c == 13
+    else if e == 115 then c == 32 or (c >= 9 and c <= 13)
     else if e == 110 then c == 10
     else if e == 116 then c == 9 else c == __rx_cp(p + 1)
     if hit then true
