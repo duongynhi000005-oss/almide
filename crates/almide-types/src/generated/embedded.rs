@@ -5241,7 +5241,7 @@ pub const SRC_DEQUE: &str = r#"
 
 
 /// A double-ended queue, front to back.
-type Deque[A] = { front: List[A], back: List[A] }
+mod type Deque[A] = { front: List[A], back: List[A] }
 
 
 /// An empty deque.
@@ -10625,7 +10625,7 @@ pub const SRC_HEAP: &str = r#"
 
 
 /// A priority queue; the least element by its order comes out first.
-type Heap[A] = { slots: List[(A, Int)], next: Int, cmp: (A, A) -> Int }
+mod type Heap[A] = { slots: List[(A, Int)], next: Int, cmp: (A, A) -> Int }
 
 
 

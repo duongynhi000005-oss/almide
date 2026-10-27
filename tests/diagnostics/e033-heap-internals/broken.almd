@@ -1,0 +1,10 @@
+import heap
+
+effect fn main() -> Unit = {
+  var h: Heap[Int] = heap.new()
+  heap.push(h, 5)
+  heap.push(h, 1)
+  println("${h.slots}")
+  var forged: Heap[Int] = Heap { slots: [(9, 0), (1, 1)], next: 2, cmp: (a, b) => a - b }
+  println("${heap.pop(forged)} ${heap.peek(forged)}")
+}

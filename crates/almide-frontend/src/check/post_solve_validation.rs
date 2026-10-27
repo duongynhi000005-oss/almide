@@ -168,6 +168,31 @@ impl Checker {
         match &resolved {
             Ty::Record { fields } | Ty::OpenRecord { fields } => fields.iter().find(|(n, _)| n == field).map(|(_, t)| t.clone()).unwrap_or(Ty::Unknown),
             Ty::TypeVar(tv) => self.resolve_field_on_typevar(ty, tv, field),
+            Ty::Named(name, args) => {
+                if let Some(target) = self.env.opaque_alias_targets.get(name).cloned() {
+                    let defining_module = self.env.opaque_alias_module.get(name).cloned().flatten();
+                    let current_module = self.current_module_prefix.as_ref().map(|p| sym(p))
+                        .or(self.env.self_module_name);
+                    let allowed = match (&defining_module, &current_module) {
+                        (None, None) => true,
+                        (Some(def), Some(cur)) => def == cur,
+                        _ => false,
+                    };
+                    if allowed {
+                        let mut param_names = Vec::new();
+                        TypeEnv::collect_typevars(&target, &mut param_names);
+                        let bindings: std::collections::HashMap<_, _> = param_names.iter()
+                            .zip(args.iter())
+                            .map(|(p, a)| (*p, a.clone()))
+                            .collect();
+                        let substituted = if bindings.is_empty() { target } else { almide_lang::types::substitute(&target, &bindings) };
+                        if let Ty::Record { fields: rec_fields } | Ty::OpenRecord { fields: rec_fields } = substituted {
+                            return rec_fields.iter().find(|(n, _)| n == field).map(|(_, t)| t.clone()).unwrap_or(Ty::Unknown);
+                        }
+                    }
+                }
+                Ty::Unknown
+            }
             _ => {
                 // The type might be an inference variable that hasn't been
                 // resolved yet (e.g. lambda param `t` whose type `?x` will

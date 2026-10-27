@@ -408,6 +408,32 @@ impl Checker {
         // static type on native (E0425) and missing the
         // qualified record_fields key on wasm (trap).
         let canon = self.record_type_canon(n);
+        // E033: opaque record construction outside its defining module
+        let key = if self.env.opaque_alias_visibility.contains_key(&canon) {
+            canon
+        } else {
+            *n
+        };
+        if let Some(vis) = self.env.opaque_alias_visibility.get(&key).copied() {
+            if !matches!(vis, ast::Visibility::Public) {
+                let defining_module = self.env.opaque_alias_module.get(&key).cloned().flatten();
+                let current_module = self.current_module_prefix.as_ref().map(|p| sym(p))
+                    .or(self.env.self_module_name);
+                let allowed = match (&defining_module, &current_module) {
+                    (None, None) => true,
+                    (Some(def), Some(cur)) => def == cur,
+                    _ => false,
+                };
+                if !allowed {
+                    self.emit(super::err(
+                        format!("cannot construct opaque type '{}' outside its defining module", n),
+                        format!("Use the module's public API to create '{}' values", n),
+                        format!("record literal {}", n),
+                    ).with_code("E033"));
+                    return Err(Ty::Unknown);
+                }
+            }
+        }
         // E029: a record literal naming an UNDECLARED type
         // previously fell through with empty decl fields —
         // validation skipped, `Ty::Named(Inner)` flowed into
@@ -427,7 +453,15 @@ impl Checker {
         let (decl, closed) = match self.env.resolve_named(&named) {
             Ty::Record { fields } => (fields, true),
             Ty::OpenRecord { fields } => (fields, false),
-            _ => (Vec::new(), false),
+            _ => {
+                let target = self.env.opaque_alias_targets.get(&key)
+                    .or_else(|| self.env.opaque_alias_targets.get(&canon));
+                if let Some(Ty::Record { fields }) = target {
+                    (fields.clone(), true)
+                } else {
+                    (Vec::new(), false)
+                }
+            }
         };
         let defaults = self.env.record_field_defaults.get(&canon)
             .or_else(|| self.env.record_field_defaults.get(&sym(n)))

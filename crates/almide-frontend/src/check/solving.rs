@@ -392,13 +392,53 @@ impl Checker {
                     || (args_a.is_empty() || args_b.is_empty())
             }
             (Ty::Named(na, _), Ty::Named(nb, _)) => self.unify_distinct_nominals(a, b, *na, *nb),
-            (Ty::Named(_, _), _) => {
+            (Ty::Named(na, args), _) => {
                 let resolved = self.env.resolve_named(a);
-                if resolved != *a { self.unify_infer(&resolved, b) } else { a.compatible(b) }
+                let mut expanded = resolved.clone();
+                if expanded == *a && let Some(target) = self.env.opaque_alias_targets.get(na).cloned() {
+                    let defining_module = self.env.opaque_alias_module.get(na).cloned().flatten();
+                    let current_module = self.current_module_prefix.as_ref().map(|p| sym(p))
+                        .or(self.env.self_module_name);
+                    let allowed = match (&defining_module, &current_module) {
+                        (None, None) => true,
+                        (Some(def), Some(cur)) => def == cur,
+                        _ => false,
+                    };
+                    if allowed {
+                        let mut param_names = Vec::new();
+                        TypeEnv::collect_typevars(&target, &mut param_names);
+                        let bindings: std::collections::HashMap<_, _> = param_names.iter()
+                            .zip(args.iter())
+                            .map(|(p, arg)| (*p, arg.clone()))
+                            .collect();
+                        expanded = if bindings.is_empty() { target } else { almide_lang::types::substitute(&target, &bindings) };
+                    }
+                }
+                if expanded != *a { self.unify_infer(&expanded, b) } else { a.compatible(b) }
             }
-            (_, Ty::Named(_, _)) => {
+            (_, Ty::Named(nb, args)) => {
                 let resolved = self.env.resolve_named(b);
-                if resolved != *b { self.unify_infer(a, &resolved) } else { a.compatible(b) }
+                let mut expanded = resolved.clone();
+                if expanded == *b && let Some(target) = self.env.opaque_alias_targets.get(nb).cloned() {
+                    let defining_module = self.env.opaque_alias_module.get(nb).cloned().flatten();
+                    let current_module = self.current_module_prefix.as_ref().map(|p| sym(p))
+                        .or(self.env.self_module_name);
+                    let allowed = match (&defining_module, &current_module) {
+                        (None, None) => true,
+                        (Some(def), Some(cur)) => def == cur,
+                        _ => false,
+                    };
+                    if allowed {
+                        let mut param_names = Vec::new();
+                        TypeEnv::collect_typevars(&target, &mut param_names);
+                        let bindings: std::collections::HashMap<_, _> = param_names.iter()
+                            .zip(args.iter())
+                            .map(|(p, arg)| (*p, arg.clone()))
+                            .collect();
+                        expanded = if bindings.is_empty() { target } else { almide_lang::types::substitute(&target, &bindings) };
+                    }
+                }
+                if expanded != *b { self.unify_infer(a, &expanded) } else { a.compatible(b) }
             }
             _ => return None,
         })

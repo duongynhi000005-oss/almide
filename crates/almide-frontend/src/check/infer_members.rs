@@ -168,6 +168,26 @@ impl Checker {
     // through as Unknown (no diagnostic at all — the failure
     // surfaced as a codegen postcondition ICE, or leaked
     // rustc's E0609). Report it here with the field roster.
+    if let Ty::Named(name, _) = concrete {
+        if self.env.opaque_alias_targets.contains_key(name) {
+            let defining_module = self.env.opaque_alias_module.get(name).cloned().flatten();
+            let current_module = self.current_module_prefix.as_ref().map(|p| sym(p))
+                .or(self.env.self_module_name);
+            let allowed = match (&defining_module, &current_module) {
+                (None, None) => true,
+                (Some(def), Some(cur)) => def == cur,
+                _ => false,
+            };
+            if !allowed {
+                self.emit(super::err(
+                    format!("cannot access field '{}' of opaque type '{}' outside its defining module", field, name),
+                    format!("Use the module's public API to access '{}' data", name),
+                    format!("field access .{}", field),
+                ).with_code("E033"));
+                return;
+            }
+        }
+    }
     let record_shape = self.env.resolve_named(&concrete);
     if let Ty::Record { fields } = &record_shape {
         let available = fields.iter().map(|(n, _)| n.as_str()).collect::<Vec<_>>().join(", ");

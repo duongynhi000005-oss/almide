@@ -1,0 +1,8 @@
+import heap
+
+effect fn main() -> Unit = {
+  var h: Heap[Int] = heap.new()
+  heap.push(h, 5)
+  heap.push(h, 1)
+  println("${heap.peek(h)}")
+}

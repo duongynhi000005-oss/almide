@@ -14,7 +14,7 @@
 // of the same name (R-deque-04), and the sequence algorithms are the list
 // ones over the front-to-back order (R-L0-42).
 /// A double-ended queue, front to back.
-type Deque[A] = { front: List[A], back: List[A] }
+mod type Deque[A] = { front: List[A], back: List[A] }
 
 // ── construction and size (R-deque-01) ──
 /// An empty deque.

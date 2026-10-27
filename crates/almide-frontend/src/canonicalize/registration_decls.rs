@@ -118,7 +118,7 @@ fn opaque_alias_identity(env: &TypeEnv, prefix: Option<&str>, name: &str) -> Sym
 /// declaration whose resolved shape is not already a record or variant.
 fn opaque_alias_shape(resolved: &Ty, visibility: ast::Visibility) -> bool {
     !matches!(visibility, ast::Visibility::Public)
-        && !matches!(resolved, Ty::Variant { .. } | Ty::Record { .. })
+        && !matches!(resolved, Ty::Variant { .. })
 }
 /// Fix up a `Variant`'s registered name to the DECLARED name, and register each of its constructors. Verbatim text move out of [`register_type_decl`].
 fn register_type_decl_variant_ctors(env: &mut TypeEnv, diagnostics: &mut Vec<Diagnostic>, name: &str, prefix: Option<&str>, resolved: &mut Ty) {
